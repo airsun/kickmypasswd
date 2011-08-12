@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kick My pASSword</title>
+    <META http-equiv=Content-Type content="text/html; charset=gb2312">
+    <script type="text/javascript" src="jquery-1.6.2.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        #container {
+            position: absolute;
+            top: 34%;
+            left: 50%;
+            width: 250px;
+            height: 500px;
+            margin-top: -150px;
+            margin-left: -125px;
+            border: 1px #999 solid;
+            background: #CEE7FF;
+        }
+
+        #logo {
+        }
+
+        #changeform {
+            margin-top: 30px;
+            float: right;
+        }
+
+        .formrow {
+            display: none;
+            width: 200px;
+            margin-right: 25px;
+            margin-top: 10px;
+            height: 26px;
+            background-color: #ADC09F;
+        }
+
+        .formrow .label {
+            text-align: left;
+            width: 50px;
+            color: #006400;
+            font-family: Arial;
+            /*font-style: oblique;*/
+            font-weight: bolder;
+            font-size: 12px;
+            float: left;
+            padding: 6px;
+        }
+
+        .formrow .entry {
+            float: left;
+        }
+
+        .formbar {
+            display: none;
+            margin-right: 25px;
+            margin-top: 10px;
+            height: 22px;
+        }
+
+        #changeform input {
+            width: 130px;
+            font-size: 14px;
+            height: 22px;
+            text-shadow: 2px;
+            /*color: red;*/
+            background-color: #ADC09F;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+            outline: none;
+        }
+
+        #changeform .sbutton {
+            width: 40px;
+            height: 22px;
+            color: #006400;
+            font-family: Arial;
+            font-weight: bolder;
+            font-size: 12px;
+
+            margin-left: 80px;
+        }
+
+        #resultbubble {
+            top: 30%;
+            left: 50%;
+            margin-top: -130px;
+            margin-left: -170px;
+            position: absolute;
+            width: 150px;
+            display:none;
+        }
+
+        #result{
+            /*solid boder for position adjustment*/
+            /*border: solid;*/
+            text-align: center;
+            position: relative;
+            margin-top: -60px;
+            margin-left: 14px;
+            width: 80px;
+            height:20px;
+            color: #006400;
+            font-family: Arial;
+            font-weight: bolder;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div id="debug"></div>
+<div id="container">
+    <div id="logo"><img src="soul.png" width="250"/></div>
+    <div id="changeform">
+        <form id="changepasswd" action="/changepasswd" method="post" enctype="multipart/form-data">
+            <div class="formrow">
+                <div class="label">用户名</div>
+                <div class="entry"><input type="text" name="name" title="用户名"/></div>
+            </div>
+            <div class="formrow">
+                <div class="label">密码</div>
+                <div class="entry"><input type="password" name="op" title="密码"/></div>
+            </div>
+            <div class="formrow">
+                <div class="label">新密码</div>
+                <div class="entry"><input type="password" name="p1" title="新密码"/></div>
+            </div>
+            <div class="formrow">
+                <div class="label">新密码C</div>
+                <div class="entry"><input type="password" name="p2" title="新密码确认"/></div>
+            </div>
+            <div class="formbar">
+                <!--注意，如果submit按钮使用其他的name，这个提交居然是无法成功的!!!!-->
+                <input type="submit" name="chgpasswd" class="sbutton" value="提交"/>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="resultbubble">
+    <img src="dialog.png" width="110"/>
+    <div id="result"></div>
+</div>
+<iframe id="opframe" name="opframe" width="0" height="0" frameborder="0"></iframe>
+</body>
+<script type="text/javascript">
+    <!--for debug-->
+    $("#changepasswd").submit(function(){
+        $("#changepasswd :input").attr("readonly","readonly");
+        bubblemessage("airsun:ok",function(){
+            $("#changepasswd >div").fadeOut('fast',function(){
+                init();
+            });
+        });
+        return false;
+    });
+
+    <!--设定iframe得到提交后延时1秒再获取response内容-->
+    $("iframe#opframe").load(function() {
+        setTimeout(function() {
+            var responseText = window.frames["opframe"].document.documentElement.innerHTML;
+            responseText = responseText.replace(/\r/gi, "").replace(/\n/ig, "");
+            var pattern = /<td align="center">(.+)[^>]<\/td>/;
+            var result = pattern.exec(responseText);
+            if (result != null) {
+                bubblemessage(result[1],function(){
+                    $("#changepasswd >div").fadeOut('fast',function(){
+                        init();
+                    });
+                })
+            }
+        }, 1000);
+    });
+
+    //blur 目前在keypress event调用时，会重复触发blur,也就是blur2next会调用两次
+    $(".formrow :input").blur(function() {
+        fade2next($(this));
+    });
+
+    //回车或开始输入
+    $(".formrow :input").keypress(function(event) {
+        var $input = $(this);
+        if (event.which == 13) {
+            event.preventDefault();
+            fade2next($input);
+        }
+    });
+
+    function bubblemessage(message,callback){
+        $("#result").text(message);
+        $("#resultbubble").fadeIn('fast').delay(1000).fadeOut('slow',callback);
+    }
+
+    function fade2next($lastinput) {
+        if ($lastinput.attr("value") == '') {
+            return;
+        }
+
+        var index = $lastinput.parent().parent().index() + 1;
+        if (index < 4) {
+            $lastinput.attr("readonly","readonly");
+            $("#changepasswd .formrow:eq(" + index + ")").fadeIn('fast', function() {
+                var $input = $("#changepasswd :input:eq(" + index + ")");
+                $input.focus();
+                $lastinput.removeAttr("readonly");
+            });
+        } else {
+            if(confirmnewpasswd()){
+                $(".formbar").fadeIn('slow', function() {
+                    $(".sbutton").focus();
+                    $(".sbutton").fadeTo('slow', 0.5).fadeTo('slow', 1);
+                });
+            }else{
+                bubblemessage("shit no same!",function(){
+                    $("#changepasswd :input:eq(3)").focus();
+                })
+            }
+        }
+    }
+
+    function confirmnewpasswd(){
+        var newpasswd = $("#changepasswd :input:eq(2)").attr("value");
+        var newpasswdC = $("#changepasswd :input:eq(3)").attr("value");
+        return newpasswd == newpasswdC;
+    }
+    function init(){
+        $(".formrow :input").attr("value","").removeAttr("readonly");
+        $("#changepasswd .formrow:eq(0)").fadeIn('slow', function() {
+            var $input = $("#changepasswd :input:eq(0)");
+            $input.focus();
+        });
+    }
+
+    <!--初始化第一个输入框,提示输入用户名-->
+    $(document).ready(function() {
+        init();
+    })
+</script>
+</html>
